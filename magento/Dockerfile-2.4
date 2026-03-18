@@ -64,7 +64,6 @@ RUN set -e; \
     mkdir -p extensions && \
     composer config repositories.dev-extensions path extensions/* && \
     composer require --dev phpstan/phpstan bitexpert/phpstan-magento phpstan/extension-installer && \
-    composer require "webonyx/graphql-php:^15.0 <15.31.0" && \
     php scripts/apply-2.4-patches.php && \
     rm scripts/apply-2.4-patches.php && \
     rm scripts/downgrade-monolog.php && \

@@ -7,6 +7,9 @@ $is242 = substr($version, 0, 5) == '2.4.2';
 $is243 = substr($version, 0, 5) == '2.4.3';
 $is244 = substr($version, 0, 5) == '2.4.4';
 $is245 = substr($version, 0, 5) == '2.4.5';
+$is246 = substr($version, 0, 5) == '2.4.6';
+$is247 = substr($version, 0, 5) == '2.4.7';
+$is248 = substr($version, 0, 5) == '2.4.8';
 $isP1 = substr($version, 6, 8) == 'p1';
 $isP2 = substr($version, 6, 8) == 'p2';
 
@@ -58,6 +61,10 @@ if ($is245) {
 
 if ($is240 && !$isP1 && !$isP2) {
     apply('bundle-2684_dotmailer_integration_tests-2020-08-04-04-31-22.patch');
+}
+
+if ($is246 || $is247 || $is248) {
+    exec('composer require "webonyx/graphql-php:^15.0 <15.31.0"');
 }
 
 apply('cors.patch');
