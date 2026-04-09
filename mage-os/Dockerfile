@@ -10,10 +10,10 @@ ENV CI=true
 ENV URL=http://localhost/
 ENV FLAT_TABLES=false
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV ENABLE_VARNISH=false
 
 COPY scripts/retry retry
 COPY scripts/allow-composer-plugins.php scripts/allow-composer-plugins.php
-COPY templates/memory-limit-php.ini /usr/local/etc/php/conf.d/memory-limit-php.ini
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs

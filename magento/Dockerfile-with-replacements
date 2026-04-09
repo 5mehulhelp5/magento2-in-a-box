@@ -7,12 +7,12 @@ ARG MAGENTO_TYPE=project-community-edition
 ENV CI=true
 ENV URL=http://localhost/
 ENV FLAT_TABLES=false
+ENV ENABLE_VARNISH=false
 
 COPY scripts/retry retry
 COPY patches/ patches/
 COPY scripts/apply-2.4-patches.php scripts/apply-2.4-patches.php
 COPY scripts/allow-composer-plugins.php scripts/allow-composer-plugins.php
-COPY templates/memory-limit-php.ini /usr/local/etc/php/conf.d/memory-limit-php.ini
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs

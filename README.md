@@ -91,6 +91,8 @@ These are all optional and only required when you want to run the container to a
 | `-p 1234:80` | Make the webserver available at port 1234. Optional if you do not need to visit Magento in the browser. |
 | `-p 3307:3306` | Make the MySQL database available at port 3307. Optional if you do not need to access the database. |
 | `-e URL=http://localhost:1234/` | Should match the port mapped to port 80 |
+| `-e FLAT_TABLES=false` | Enable the flat tables on startup? |
+| `-e ENABLE_VARNISH=false` | Enable Varnish full page cache on startup? When enabled, Varnish listens on port 80 and the PHP server moves to port 8080. |
 
 ## Commands
 

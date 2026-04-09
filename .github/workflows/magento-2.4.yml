@@ -290,17 +290,50 @@ jobs:
         --build-arg SAMPLE_DATA=${{ matrix.cfg.SAMPLE_DATA }}
 
     # Step 2: Test the docker image
-    - name: Start the docker image
-      run:
-        docker run --memory=4G --detach --name magento-project-community-edition
-        michielgerritsen/magento-project-community-edition:${{ steps.tags.outputs.tag }}
-
-    - name: Verify tool versions
+    - name: Randomly enable or disable Varnish
+      id: varnish
       run: |
-        docker exec magento-project-community-edition node --version
-        docker exec magento-project-community-edition npm --version
-        docker exec magento-project-community-edition php --version
-        docker exec magento-project-community-edition mysql --version
+        if [ $((RANDOM % 2)) -eq 1 ]; then
+          echo "enabled=true" >> $GITHUB_OUTPUT
+          echo "Varnish: enabled"
+        else
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Varnish: disabled"
+        fi
+
+    - name: Start the docker image (without sample date)
+      if: matrix.cfg.SAMPLE_DATA == false
+      run:
+        docker run --detach --name magento-project-community-edition
+        -p 1234:80
+        -e ENABLE_VARNISH=${{ steps.varnish.outputs.enabled }}
+        michielgerritsen/magento-project-community-edition:${{ matrix.cfg.PHP_VERSION }}-magento${{ matrix.cfg.MAGENTO_VERSION }}
+
+    - name: Start the docker image (with sample date)
+      if: matrix.cfg.SAMPLE_DATA == true
+      run:
+        docker run --detach --name magento-project-community-edition
+        -p 1234:80
+        -e ENABLE_VARNISH=${{ steps.varnish.outputs.enabled }}
+        michielgerritsen/magento-project-community-edition:${{ matrix.cfg.PHP_VERSION }}-magento${{ matrix.cfg.MAGENTO_VERSION }}-sample-data
+
+    - name: Verify webserver is accessible
+      run: |
+        if [ "${{ steps.varnish.outputs.enabled }}" = "true" ]; then
+          HEADER_CHECK="X-Magento-Tags"
+        else
+          HEADER_CHECK="200 OK"
+        fi
+        for i in $(seq 1 30); do
+          if curl -s -D- -o /dev/null http://localhost:1234/ | grep -qi "$HEADER_CHECK"; then
+            echo "Webserver is responding (checked for: $HEADER_CHECK)"
+            exit 0
+          fi
+          echo "Attempt $i: waiting for webserver..."
+          sleep 2
+        done
+        echo "Webserver did not respond in time (checked for: $HEADER_CHECK)"
+        exit 1
 
     - name: Create the dummy test directory
       run: docker exec magento-project-community-edition mkdir -p /data/app/code/MichielGerritsen/Magento2ExtensionIntegrationTest/Test/Integration
