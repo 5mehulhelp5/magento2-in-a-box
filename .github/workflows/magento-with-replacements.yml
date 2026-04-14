@@ -40,17 +40,62 @@ jobs:
         --build-arg PHP_VERSION=${{ matrix.cfg.PHP_VERSION }}
 
     # Step 2: Test the docker image
+    - name: Randomly enable or disable Varnish
+      id: varnish
+      run: |
+        if [ $((RANDOM % 2)) -eq 1 ]; then
+          echo "enabled=true" >> $GITHUB_OUTPUT
+          echo "Varnish: enabled"
+        else
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Varnish: disabled"
+        fi
+
+    - name: Add magento.test to hosts file
+      run: echo "127.0.0.1 magento.test" | sudo tee -a /etc/hosts
+
     - name: Start the docker image
       run:
-        docker run --memory=4G --detach --name magento-project-community-edition
-        michielgerritsen/magento-project-community-edition:${{ matrix.cfg.PHP_VERSION }}-magento${{ matrix.cfg.MAGENTO_VERSION }}-with-replacements
+        docker run --detach --name magento-project-community-edition
+        -p 80:80
+        -e ENABLE_VARNISH=${{ steps.varnish.outputs.enabled }}
+        -e URL=http://magento.test/
+        michielgerritsen/magento-project-community-edition:${{ matrix.cfg.PHP_VERSION }}-magento${{ matrix.cfg.MAGENTO_VERSION }}
 
-    - name: Verify tool versions
+    - name: Verify webserver is accessible
       run: |
-        docker exec magento-project-community-edition node --version
-        docker exec magento-project-community-edition npm --version
-        docker exec magento-project-community-edition php --version
-        docker exec magento-project-community-edition mysql --version
+        if [ "${{ steps.varnish.outputs.enabled }}" = "true" ]; then
+          HEADER_CHECK="X-Magento-Tags"
+        else
+          HEADER_CHECK="200 OK"
+        fi
+        for i in $(seq 1 30); do
+          if curl -s -D- -o /dev/null http://magento.test/ | grep -qi "$HEADER_CHECK"; then
+            echo "Webserver is responding (checked for: $HEADER_CHECK)"
+            exit 0
+          fi
+          echo "Attempt $i: waiting for webserver..."
+          sleep 2
+        done
+        echo "Webserver did not respond in time (checked for: $HEADER_CHECK)"
+        exit 1
+
+    - name: Install Playwright
+      run: |
+        npm install
+        npx playwright install --with-deps chromium
+
+    - name: Run Playwright tests
+      run: npx playwright test tests/storefront.spec.ts tests/customer-account.spec.ts
+
+    - name: Upload Playwright report
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-${{ steps.tags.outputs.tag }}
+        path: |
+          playwright-report/
+          test-results/
 
     - name: Create the dummy test directory
       run: docker exec magento-project-community-edition mkdir -p /data/app/code/MichielGerritsen/Magento2ExtensionIntegrationTest/Test/Integration

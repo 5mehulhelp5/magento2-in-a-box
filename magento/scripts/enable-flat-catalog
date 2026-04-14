@@ -3,6 +3,6 @@
 set -e
 
 echo "Enabling flat catalog"
-magerun2 config:store:set catalog/frontend/flat_catalog_category 1
-magerun2 config:store:set catalog/frontend/flat_catalog_product 1
-magerun2 cache:flush
+php bin/magento config:set catalog/frontend/flat_catalog_category 1
+php bin/magento config:set catalog/frontend/flat_catalog_product 1
+php bin/magento cache:flush
