@@ -54,6 +54,12 @@ RUN set -e; \
     rm scripts/apply-2.4-patches.php && \
     ./stop-services
 
+# Disable PHP-FPM: this image uses the PHP built-in web server, not FPM.
+# If FPM is running, it holds open file handles on generated code, preventing
+# deploy:mode:set / setup:di:compile from cleaning the generated directory.
+RUN rm -f /etc/supervisor/conf.d/php-fpm.conf
+
+COPY templates/supervisord-webserver.conf /etc/supervisor/conf.d/webserver.conf
 COPY templates/install-config-mysql.php dev/tests/integration/etc/
 COPY templates/post-install-setup-command-config.php dev/tests/integration/etc/
 COPY templates/phpunit-unit.xml dev/tests/unit/phpunit.xml
